@@ -1,0 +1,7 @@
+[package]
+name = "hands_commit"
+type = "bin"
+authors = ["Gawi Bawi Bo ZK"]
+compiler_version = ">=1.0.0-beta.9"
+
+[dependencies]
