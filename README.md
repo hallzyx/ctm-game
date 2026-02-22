@@ -1,159 +1,70 @@
-# Stellar Game Studio
+# CTM - Commit-Turn-Move: Zero-Knowledge Rock-Paper-Scissors
 
-Development Tools For Web3 Game Builders On Stellar.
+## Overview
 
-Ecosystem ready game templates and examples ready to scaffold into into your development workflow
+CTM (Commit-Turn-Move) is an innovative zero-knowledge powered variant of the classic rock-paper-scissors game, built on the Stellar blockchain using Soroban smart contracts. In this strategic two-player game, players engage in a multi-phase commitment and reveal mechanism that adds layers of tactical depth to traditional RPS gameplay.
 
-**Start here:** [Stellar Game Studio](https://jamesbachini.github.io/Stellar-Game-Studio/)
+The game is inspired by the Korean "Gawi Bawi Bo" (double rock-paper-scissors), where players secretly commit to two different hands, reveal them, and then strategically choose which hand to keep for the final duel. Zero-knowledge cryptography ensures that commitments remain hidden until the appropriate reveal phase, preventing cheating and maintaining game integrity.
 
-## Games
+## How to Play
 
-### CTM (Commit-Turn-Move)
+CTM unfolds in five distinct phases:
 
-A zero-knowledge powered rock-paper-scissors variant where players strategically commit and reveal hands.
+1. **Commit Hands**: Both players secretly commit to two different hands (rock, paper, or scissors) using a cryptographic hash. They submit `keccak256(left_hand || right_hand || salt)` without revealing their choices.
 
-**Key Features:**
-- Zero-knowledge commitments using keccak256 hashing
-- Two-phase strategic gameplay (commit hands → choose keeper)
-- Built on Stellar Soroban platform
-- TypeScript frontend with modern UI
+2. **Reveal Hands**: Players reveal their actual hands and the salt used in the hash. The contract verifies the commitment matches the revealed values.
 
-**Quick Start:**
+3. **Commit Choice**: Each player commits to which of their two hands they want to keep for the final duel, again using a hash commitment.
+
+4. **Reveal Choice**: Players reveal their choice of which hand to keep. The contract verifies and determines the winner based on classic RPS rules.
+
+5. **Complete**: The game resolves, and the winner is declared. In case of a tie, player 1 wins by convention.
+
+## Key Features
+
+- **Zero-Knowledge Commitments**: Uses keccak256 hashing to ensure commitments are binding without premature revelation.
+- **Strategic Depth**: Players must think ahead, committing to two hands and then choosing the optimal one based on the opponent's revealed hands.
+- **Blockchain Security**: Built on Stellar Soroban for decentralized, trustless gameplay.
+- **Modern Frontend**: TypeScript-based UI with a sleek "Arena" design theme.
+- **Game Hub Integration**: Seamlessly integrates with the Stellar Game Studio ecosystem for session management and scoring.
+
+## Quick Start
+
 ```bash
-# Scaffold CTM game
-bun run create ctm
+# Clone the repository
+git clone https://github.com/jamesbachini/Stellar-Game-Studio
+cd Stellar-Game-Studio
 
-# Run development frontend
+# Install dependencies
+bun install
+
+# Set up testnet environment
+bun run setup
+
+# Run the CTM game frontend
 bun run dev:game ctm
 ```
 
-**Learn More:** [CTM Documentation](./docs/ctm/)
+## Architecture
 
-## Why this exists
+CTM leverages Stellar Soroban smart contracts for game logic, with a React-based frontend for user interaction. The contract implements a state machine across five phases, using temporary storage with TTL for game sessions. Zero-knowledge is achieved through hash-based commit-reveal schemes, with optional Noir circuit integration for off-chain proof generation.
 
-Stellar Game Studio is a toolkit for shipping web3 games quickly and efficiently. It pairs Stellar smart contract patterns with a ready-made frontend stack and deployment scripts, so you can focus on game design and gameplay mechanics.
+## Documentation
 
-## What you get
+For detailed information about CTM, refer to the following documentation files:
 
-- Battle-tested Soroban patterns for two-player games
-- A ecosystem ready mock game hub contract that standardizes lifecycle and scoring
-- Deterministic randomness guidance and reference implementations
-- One-command scaffolding for contracts + standalone frontend
-- Testnet setup that generates wallets, deploys contracts, and wires bindings
-- A production build flow that outputs a deployable frontend
+- **[Game Overview](./docs/ctm/README.md)**: Comprehensive introduction to CTM gameplay and features.
+- **[Architecture](./docs/ctm/architecture.md)**: Technical architecture, smart contract design, and system components.
+- **[Game Rules](./docs/ctm/game-rules.md)**: Detailed gameplay rules, strategies, and examples.
+- **[API Reference](./docs/ctm/api-reference.md)**: Complete contract methods, frontend APIs, and integration guides.
+- **[Development Guide](./docs/ctm/development.md)**: Setup instructions, testing, deployment, and contribution guidelines.
 
-## Quick Start (Dev)
+## Built with Stellar Game Studio
 
-```bash
-# Fork the repo, then:
-git clone https://github.com/jamesbachini/Stellar-Game-Studio
-cd Stellar-Game-Studio
-bun install
+This game was developed using Stellar Game Studio, a toolkit for building Web3 games on Stellar. It provides battle-tested Soroban patterns, ready-made frontend stacks, and deployment automation to accelerate game development.
 
-# Build + deploy contracts to testnet, generate bindings, write .env
-bun run setup
-
-# Scaffold a game + dev frontend
-bun run create my-game
-
-# Run the standalone dev frontend with testnet wallet switching
-bun run dev:game my-game
-```
-
-## Publish (Production)
-
-```bash
-# Export a production container and build it (uses CreitTech wallet kit v2)
-bun run publish my-game --build
-
-# Update runtime config in the output
-# dist/my-game-frontend/public/game-studio-config.js
-```
-
-## Project Structure
-
-```
-├── contracts/               # Soroban contracts for games + mock Game Hub
-├── template_frontend/       # Standalone number-guess example frontend used by create
-├── <game>-frontend/         # Standalone game frontend (generated by create)
-├── sgs_frontend/            # Documentation site (builds to docs/)
-├── scripts/                 # Build & deployment automation
-└── bindings/                # Generated TypeScript bindings
-```
-
-## Commands
-
-```bash
-bun run setup                         # Build + deploy testnet contracts, generate bindings
-bun run build [game-name]             # Build all or selected contracts
-bun run deploy [game-name]            # Deploy all or selected contracts to testnet
-bun run bindings [game-name]          # Generate bindings for all or selected contracts
-bun run create my-game                # Scaffold contract + standalone frontend
-bun run dev:game my-game              # Run a standalone frontend with dev wallet switching
-bun run publish my-game --build       # Export + build production frontend
-```
-
-## Ecosystem Constraints
-
-- Every game must call `start_game` and `end_game` on the Game Hub contract:
-  Testnet: CB4VZAT2U3UC6XFK3N23SKRF2NDCMP3QHJYMCHHFMZO7MRQO6DQ2EMYG
-- Game Hub enforces exactly two players per session.
-- Keep randomness deterministic between simulation and submission.
-- Prefer temporary storage with a 30-day TTL for game state.
-
-## Notes
-
-- Dev wallets are generated during `bun run setup` and stored in the root `.env`.
-- Production builds read runtime config from `public/game-studio-config.js`.
-
-Interface for game hub:
-```
-#[contractclient(name = "GameHubClient")]
-pub trait GameHub {
-    fn start_game(
-        env: Env,
-        game_id: Address,
-        session_id: u32,
-        player1: Address,
-        player2: Address,
-        player1_points: i128,
-        player2_points: i128,
-    );
-
-    fn end_game(
-      env: Env,
-      session_id: u32,
-      player1_won: bool
-    );
-}
-```
-
-## Studio Reference
-
-Run the studio frontend locally (from `sgs_frontend/`):
-```bash
-bun run dev
-```
-
-Build docs into `docs/`:
-```bash
-bun --cwd=sgs_frontend run build:docs
-```
-
-## Links
-https://developers.stellar.org/
-https://risczero.com/
-https://jamesbachini.com
-https://www.youtube.com/c/JamesBachini
-https://bachini.substack.com
-https://x.com/james_bachini
-https://www.linkedin.com/in/james-bachini/
-https://github.com/jamesbachini
+**Built with ❤️ for Stellar developers**
 
 ## 📄 License
 
 MIT License - see LICENSE file
-
-
-**Built with ❤️ for Stellar developers**
-# ctm-game
