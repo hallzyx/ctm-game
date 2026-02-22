@@ -1,5 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
+  Swords,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Copy,
+  Share2,
+  Trophy,
+  Eye,
+  Lock,
+  BrainCircuit,
+  Zap,
+  Download,
+  Upload,
+  Sparkles,
+  RotateCcw,
+  Send,
+} from 'lucide-react';
+import {
   CtmService,
   generateSalt,
   computeHandsHash,
@@ -21,7 +39,7 @@ import type { Game } from './bindings';
 // Constants
 // ============================================================================
 
-const HAND_EMOJI = ['🪨', '✋', '✌️'] as const;
+const HAND_EMOJI = ['🗿', '✋', '✌️'] as const;
 const HAND_NAME = ['Rock', 'Paper', 'Scissors'] as const;
 
 const ctmService = new CtmService(CTM_CONTRACT);
@@ -147,6 +165,13 @@ export function CtmGame({
   // --- helpers ---------------------------------------------------------------
 
   useEffect(() => { setPlayer1Address(userAddress); }, [userAddress]);
+
+  // Reset selections when switching players
+  useEffect(() => {
+    setSelectedLeft(null);
+    setSelectedRight(null);
+    setSelectedKeep(null);
+  }, [userAddress]);
 
   const parsePoints = (v: string): bigint | null => {
     try {
@@ -434,47 +459,92 @@ export function CtmGame({
 
   // --- sub-components --------------------------------------------------------
 
+  // Derive player identity for board-side color switching
+  const isP1 = gameState ? gameState.player1 === userAddress : true;
+
   const HandButton = ({ hand, selected, onSelect, disabled }: { hand: number; selected: boolean; onSelect: () => void; disabled?: boolean }) => (
     <button
       onClick={onSelect}
       disabled={disabled}
-      className={`p-4 rounded-xl border-2 font-bold text-2xl transition-all ${
-        selected
-          ? 'border-purple-500 bg-gradient-to-br from-purple-500 to-pink-500 text-white scale-110 shadow-2xl'
-          : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-lg hover:scale-105 disabled:opacity-50'
-      }`}
+      className={`relative w-20 h-24 sm:w-24 sm:h-28 rounded-2xl font-bold text-3xl sm:text-4xl transition-all duration-300 flex flex-col items-center justify-center gap-1
+        ${selected
+          ? `ring-3 shadow-lg scale-105 ${isP1 ? 'bg-amber-50 ring-amber-400 shadow-amber-200/50' : 'bg-violet-50 ring-violet-400 shadow-violet-200/50'}`
+          : 'bg-white ring-1 ring-stone-200 hover:ring-stone-300 hover:shadow-md hover:-translate-y-0.5 disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:cursor-not-allowed'
+        }`}
     >
-      {HAND_EMOJI[hand]}
-      <div className="text-xs mt-1">{HAND_NAME[hand]}</div>
+      <span className="drop-shadow-sm">{HAND_EMOJI[hand]}</span>
+      <span className={`text-[10px] font-semibold tracking-wide uppercase ${selected ? (isP1 ? 'text-amber-600' : 'text-violet-600') : 'text-stone-400'}`}>{HAND_NAME[hand]}</span>
     </button>
   );
 
-  const HandDisplay = ({ hand, label, highlight }: { hand: number | undefined | null; label: string; highlight?: boolean }) => (
-    <div className={`p-3 rounded-xl border-2 text-center ${highlight ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200 bg-white'}`}>
-      <div className="text-xs font-bold text-gray-500 mb-1">{label}</div>
-      <div className="text-3xl">{hand != null ? HAND_EMOJI[hand] : '❓'}</div>
-      <div className="text-xs font-semibold mt-1">{hand != null ? HAND_NAME[hand] : 'Hidden'}</div>
+  const HandDisplay = ({ hand, label }: { hand: number | undefined | null; label: string }) => (
+    <div className="flex-1 p-4 rounded-2xl text-center transition-all duration-300 bg-stone-50 ring-1 ring-stone-200">
+      <div className="text-[10px] font-bold tracking-widest uppercase text-stone-400 mb-2">{label}</div>
+      <div className="text-3xl sm:text-4xl drop-shadow-sm">{hand != null ? HAND_EMOJI[hand] : '❓'}</div>
+      <div className={`text-xs font-semibold mt-2 tracking-wide uppercase ${hand != null ? 'text-stone-600' : 'text-stone-300'}`}>{hand != null ? HAND_NAME[hand] : 'Hidden'}</div>
     </div>
   );
 
-  const PlayerCard = ({ label, address, points, isMe, statusEl }: { label: string; address: string; points: bigint; isMe: boolean; statusEl: React.ReactNode }) => (
-    <div className={`p-4 rounded-xl border-2 ${isMe ? 'border-purple-400 bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg' : 'border-gray-200 bg-white'}`}>
-      <div className="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">{label}</div>
-      <div className="font-mono text-sm font-semibold mb-1 text-gray-800">{shortAddr(address)}</div>
-      <div className="text-xs font-semibold text-gray-600">Points: {(Number(points) / 1e7).toFixed(2)}</div>
-      <div className="mt-2">{statusEl}</div>
-    </div>
-  );
+  const PlayerCard = ({ label, address, points, isMe, statusEl }: { label: string; address: string; points: bigint; isMe: boolean; statusEl: React.ReactNode }) => {
+    const isPlayer1Card = label === 'Player 1';
+    const cardColor = isPlayer1Card ? 'amber' : 'violet';
+    return (
+      <div className={`relative p-5 rounded-2xl transition-all duration-300 overflow-hidden
+        ${isMe
+          ? `bg-gradient-to-br ring-2 shadow-lg ${cardColor === 'amber' ? 'from-amber-50 to-orange-50/50 ring-amber-300 shadow-amber-100/50' : 'from-violet-50 to-indigo-50/50 ring-violet-300 shadow-violet-100/50'}`
+          : 'bg-stone-50 ring-1 ring-stone-200'
+        }`}>
+        {isMe && <div className={`absolute top-0 left-0 w-full h-1 ${cardColor === 'amber' ? 'bg-gradient-to-r from-amber-400 to-orange-400' : 'bg-gradient-to-r from-violet-400 to-indigo-400'}`} />}
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <div className={`text-xs font-bold uppercase tracking-widest ${isMe ? (cardColor === 'amber' ? 'text-amber-600' : 'text-violet-600') : 'text-stone-400'}`}>
+              {label} {isMe && <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${cardColor === 'amber' ? 'bg-amber-200/60 text-amber-700' : 'bg-violet-200/60 text-violet-700'}`}>YOU</span>}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Points</div>
+            <div className="text-lg font-bold text-stone-800">{(Number(points) / 1e7).toFixed(2)}</div>
+          </div>
+        </div>
+        <div className="font-mono text-xs text-stone-400 bg-white/80 px-3 py-1.5 rounded-lg ring-1 ring-stone-100 mb-3">{shortAddr(address)}</div>
+        <div>{statusEl}</div>
+      </div>
+    );
+  };
 
   const StatusBadge = ({ done, text }: { done: boolean; text?: string }) => (
-    <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${done ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-md' : 'bg-gray-200 text-gray-600'}`}>
-      {done ? '✓ Done' : text || 'Waiting…'}
+    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all duration-300
+      ${done ? 'bg-teal-50 text-teal-600 ring-1 ring-teal-200' : 'bg-stone-100 text-stone-400 ring-1 ring-stone-200'}`}>
+      {done ? <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> : <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+      {done ? (text || '✓ Done') : (text || 'Waiting…')}
     </span>
   );
 
   const WaitingBanner = ({ msg }: { msg: string }) => (
-    <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl animate-pulse">
-      <p className="text-sm font-semibold text-blue-700">⏳ {msg}</p>
+    <div className={`relative p-6 rounded-2xl mt-6 overflow-hidden ring-1 ${isP1 ? 'bg-amber-50/50 ring-amber-200' : 'bg-violet-50/50 ring-violet-200'}`}>
+      <div className="flex items-center gap-4">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isP1 ? 'bg-amber-100' : 'bg-violet-100'}`}>
+          <Loader2 className={`w-5 h-5 animate-spin ${isP1 ? 'text-amber-500' : 'text-violet-500'}`} />
+        </div>
+        <p className="text-sm font-medium text-stone-600 leading-relaxed">{msg}</p>
+      </div>
+    </div>
+  );
+
+  // Phase stepper
+  const PHASE_NAMES = ['Commit', 'Reveal', 'Choose', 'Showdown', 'Done'];
+  const PhaseStep = ({ phase }: { phase: number }) => (
+    <div className="flex items-center justify-center gap-1 sm:gap-2">
+      {[1, 2, 3, 4, 5].map((p) => (
+        <div key={p} className="flex items-center gap-1 sm:gap-2">
+          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all duration-500
+            ${phase === p ? (isP1 ? 'bg-amber-400 text-white ring-4 ring-amber-100 shadow-md' : 'bg-violet-400 text-white ring-4 ring-violet-100 shadow-md') :
+              phase > p ? 'bg-stone-800 text-white' : 'bg-stone-200 text-stone-400'}`}>
+            {phase > p ? '✓' : p}
+          </div>
+          {p < 5 && <div className={`w-4 sm:w-8 h-0.5 rounded-full transition-all duration-500 ${phase > p ? 'bg-stone-800' : 'bg-stone-200'}`} />}
+        </div>
+      ))}
     </div>
   );
 
@@ -495,34 +565,49 @@ export function CtmGame({
     return <StatusBadge done={g.p2_commit != null} />;
   };
 
-  const phaseLabel = (phase: number) => ['', '🔒 Commit Hands', '👁 Reveal Hands', '🧠 Choose Hand', '🎯 Reveal Choice', '🏆 Complete'][phase] ?? '';
-
   // =========================================================================
   // RENDER
   // =========================================================================
 
   return (
-    <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-8 shadow-xl border-2 border-purple-200">
+    <div className={`relative rounded-[2rem] p-6 md:p-10 shadow-xl overflow-hidden transition-colors duration-700
+      ${gamePhase === 'playing' && gameState
+        ? (isP1 ? 'bg-gradient-to-br from-white via-amber-50/40 to-white ring-1 ring-amber-200/60' : 'bg-gradient-to-br from-white via-violet-50/40 to-white ring-1 ring-violet-200/60')
+        : 'bg-white/95 ring-1 ring-stone-200/80'}
+      backdrop-blur-xl`}>
+
+      {/* Subtle texture */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.4\' fill-rule=\'evenodd\'%3E%3Cpath d=\'M0 40L40 0H20L0 20M40 40V20L20 40\'/%3E%3C/g%3E%3C/svg%3E")' }} />
+
       {/* Header */}
-      <div className="flex items-center mb-6">
-        <div>
-          <h2 className="text-3xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 bg-clip-text text-transparent">
-            Gawi Bawi Bo ZK 🪨✋✌️
+      <div className="relative z-10 flex flex-col items-center text-center mb-8 pb-6 border-b border-stone-200/80">
+        <div className="flex items-center gap-2 mb-1">
+          <Sparkles className={`w-5 h-5 ${gamePhase === 'playing' && gameState ? (isP1 ? 'text-amber-400' : 'text-violet-400') : 'text-stone-400'}`} />
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-stone-800" style={{ fontFamily: 'var(--font-serif)' }}>
+            Commit · Turn · Move
           </h2>
-          <p className="text-sm text-gray-700 font-semibold mt-1">Korean Double Rock-Paper-Scissors with ZK commitments</p>
-          <p className="text-xs text-gray-500 font-mono mt-1">Session: {sessionId} {gameState ? `• Phase ${gameState.phase}/5 ${phaseLabel(gameState.phase)}` : ''}</p>
+          <Sparkles className={`w-5 h-5 ${gamePhase === 'playing' && gameState ? (isP1 ? 'text-amber-400' : 'text-violet-400') : 'text-stone-400'}`} />
+        </div>
+        <p className="text-xs text-stone-400 font-medium tracking-widest uppercase mt-1">Evolved Rock-Paper-Scissors with ZK Commitments</p>
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+          <span className="px-3 py-1 rounded-full bg-stone-100 text-[10px] font-mono text-stone-400 tracking-wider flex items-center gap-1.5">
+            <Lock className="w-3 h-3" /> {sessionId}
+          </span>
+          {gameState && <PhaseStep phase={gameState.phase} />}
         </div>
       </div>
 
       {/* Messages */}
       {error && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-xl">
-          <p className="text-sm font-semibold text-red-700">{error}</p>
+        <div className="relative z-10 mb-6 p-4 bg-rose-50 ring-1 ring-rose-200 rounded-xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-rose-500 mt-0.5 flex-shrink-0" />
+          <p className="text-sm font-medium text-rose-700 leading-relaxed">{error}</p>
         </div>
       )}
       {success && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl">
-          <p className="text-sm font-semibold text-green-700">{success}</p>
+        <div className="relative z-10 mb-6 p-4 bg-teal-50 ring-1 ring-teal-200 rounded-xl flex items-start gap-3">
+          <CheckCircle2 className="w-5 h-5 text-teal-600 mt-0.5 flex-shrink-0" />
+          <p className="text-sm font-medium text-teal-700 leading-relaxed">{success}</p>
         </div>
       )}
 
@@ -530,61 +615,77 @@ export function CtmGame({
       {/* CREATE PHASE                                                       */}
       {/* ================================================================= */}
       {gamePhase === 'create' && (
-        <div className="space-y-6">
-          {/* Mode toggle */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 p-2 bg-gray-100 rounded-xl">
+        <div className="relative z-10 space-y-6">
+          {/* Mode toggle — segmented control */}
+          <div className="flex items-center justify-center gap-1 p-1 bg-stone-100 rounded-full w-fit mx-auto">
             {(['create', 'import', 'load'] as const).map((m) => (
               <button key={m} onClick={() => { setCreateMode(m); setExportedAuthEntryXDR(null); }}
-                className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all ${createMode === m ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
-                {m === 'create' ? 'Create & Export' : m === 'import' ? 'Import Auth Entry' : 'Load Game'}
+                className={`py-2.5 px-5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300
+                  ${createMode === m ? 'bg-white text-stone-800 shadow-md ring-1 ring-stone-200' : 'text-stone-400 hover:text-stone-600'}`}>
+                {m === 'create' ? 'Create' : m === 'import' ? 'Import' : 'Load'}
               </button>
             ))}
           </div>
 
           {/* Quickstart */}
-          <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="p-5 bg-amber-50/60 ring-1 ring-amber-200/80 rounded-2xl">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-bold text-yellow-900">⚡ Quickstart (Dev)</p>
-                <p className="text-xs font-semibold text-yellow-800">Creates game and plays full RPS demo with dev wallets.</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-1 flex items-center gap-1.5">
+                  <Zap className="w-4 h-4" /> Quickstart
+                </p>
+                <p className="text-xs text-stone-500">Creates a full RPS demo with dev wallets.</p>
               </div>
               <button onClick={handleQuickStart} disabled={isBusy || !quickstartAvailable}
-                className="px-4 py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 disabled:from-gray-200 disabled:to-gray-300 disabled:text-gray-500 transition-all shadow-md">
-                {quickstartLoading ? 'Running…' : '⚡ Quickstart'}
+                className="px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest text-white bg-amber-500 hover:bg-amber-600 disabled:bg-stone-200 disabled:text-stone-400 transition-all duration-300 shadow-sm hover:shadow-md flex items-center gap-2">
+                {quickstartLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                {quickstartLoading ? 'Running…' : 'Go'}
               </button>
             </div>
           </div>
 
           {/* --- CREATE MODE --- */}
           {createMode === 'create' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Your Address (Player 1)</label>
+            <div className="space-y-5 bg-stone-50/50 p-6 md:p-8 rounded-2xl ring-1 ring-stone-200/80">
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-500 ml-0.5">Your Address (Player 1)</label>
                 <input type="text" value={player1Address} onChange={(e) => setPlayer1Address(e.target.value.trim())} placeholder="G…"
-                  className="w-full px-4 py-3 rounded-xl bg-white border-2 border-gray-200 focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100 text-sm font-medium text-gray-700" />
+                  className="w-full px-4 py-3 rounded-xl bg-white ring-1 ring-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-300 text-sm font-mono text-stone-700 placeholder-stone-300 transition-all" />
               </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Your Points</label>
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-500 ml-0.5">Your Points</label>
                 <input type="text" value={player1Points} onChange={(e) => setPlayer1Points(e.target.value)} placeholder="0.1"
-                  className="w-full px-4 py-3 rounded-xl bg-white border-2 border-gray-200 focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100 text-sm font-medium" />
-                <p className="text-xs font-semibold text-gray-600 mt-1">Available: {(Number(availablePoints) / 1e7).toFixed(2)} Points</p>
+                  className="w-full px-4 py-3 rounded-xl bg-white ring-1 ring-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-300 text-sm font-mono text-stone-700 placeholder-stone-300 transition-all" />
+                <p className="text-[10px] font-medium text-stone-400 mt-1 ml-0.5">Available: {(Number(availablePoints) / 1e7).toFixed(2)} Points</p>
               </div>
-              <div className="p-3 bg-blue-50 border-2 border-blue-200 rounded-xl">
-                <p className="text-xs font-semibold text-blue-800">ℹ️ Player 2 will specify their own address and points when importing.</p>
+              <div className="p-3 bg-sky-50 ring-1 ring-sky-200 rounded-xl flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-sky-700 leading-relaxed">Player 2 will specify their own address and points when importing.</p>
               </div>
               {!exportedAuthEntryXDR ? (
                 <button onClick={handlePrepare} disabled={isBusy}
-                  className="w-full py-4 rounded-xl font-bold text-white text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-200 disabled:to-gray-300 disabled:text-gray-500 transition-all shadow-lg">
-                  {loading ? 'Preparing…' : 'Prepare & Export Auth Entry'}
+                  className="w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-white bg-stone-800 hover:bg-stone-700 disabled:bg-stone-200 disabled:text-stone-400 transition-all duration-300 shadow-sm hover:shadow-md mt-2 flex items-center justify-center gap-2">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {loading ? 'Preparing…' : 'Prepare & Export'}
                 </button>
               ) : (
-                <div className="space-y-3">
-                  <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl">
-                    <p className="text-xs font-bold uppercase tracking-wide text-green-700 mb-2">Auth Entry XDR</p>
-                    <div className="bg-white p-3 rounded-lg border border-green-200 mb-3"><code className="text-xs font-mono text-gray-700 break-all">{exportedAuthEntryXDR}</code></div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button onClick={copyAuth} className="py-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-sm transition-all shadow-md">{authEntryCopied ? '✓ Copied!' : '📋 Copy'}</button>
-                      <button onClick={copyShareUrl} className="py-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-sm transition-all shadow-md">{shareUrlCopied ? '✓ Copied!' : '🔗 Share URL'}</button>
+                <div className="space-y-4 mt-4">
+                  <div className="p-5 bg-teal-50 ring-1 ring-teal-200 rounded-2xl">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-teal-600 mb-3 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" /> Auth Entry XDR
+                    </p>
+                    <div className="bg-white p-3 rounded-xl ring-1 ring-teal-100 mb-4 max-h-28 overflow-y-auto">
+                      <code className="text-[11px] font-mono text-stone-500 break-all leading-relaxed">{exportedAuthEntryXDR}</code>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button onClick={copyAuth} className="py-3 rounded-xl bg-white ring-1 ring-teal-200 text-teal-600 hover:bg-teal-50 font-bold text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2">
+                        {authEntryCopied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        {authEntryCopied ? 'Copied!' : 'Copy XDR'}
+                      </button>
+                      <button onClick={copyShareUrl} className="py-3 rounded-xl bg-white ring-1 ring-violet-200 text-violet-600 hover:bg-violet-50 font-bold text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2">
+                        {shareUrlCopied ? <CheckCircle2 className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                        {shareUrlCopied ? 'Copied!' : 'Share URL'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -595,31 +696,35 @@ export function CtmGame({
           {/* --- IMPORT MODE --- */}
           {createMode === 'import' && (
             <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl space-y-3">
-                <p className="text-sm font-semibold text-blue-800">📥 Import Auth Entry from Player 1</p>
+              <div className="p-6 bg-violet-50/60 ring-1 ring-violet-200/80 rounded-2xl space-y-5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-600 flex items-center gap-1.5">
+                  <Download className="w-4 h-4" /> Import Auth Entry from Player 1
+                </p>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1 flex items-center gap-2">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-1.5 flex items-center gap-2 ml-0.5">
                     Auth Entry XDR
-                    {xdrParsing && <span className="text-blue-500 text-xs animate-pulse">Parsing…</span>}
-                    {xdrParseSuccess && <span className="text-green-600 text-xs">✓ Parsed</span>}
-                    {xdrParseError && <span className="text-red-600 text-xs">✗ Error</span>}
+                    {xdrParsing && <span className="text-violet-500 animate-pulse">Parsing…</span>}
+                    {xdrParseSuccess && <span className="text-teal-600">✓ Parsed</span>}
+                    {xdrParseError && <span className="text-rose-500">✗ Error</span>}
                   </label>
                   <textarea value={importAuthEntryXDR} onChange={(e) => setImportAuthEntryXDR(e.target.value)} rows={4} placeholder="Paste auth entry XDR…"
-                    className={`w-full px-4 py-3 rounded-xl bg-white border-2 focus:outline-none focus:ring-4 text-xs font-mono resize-none ${xdrParseError ? 'border-red-300' : xdrParseSuccess ? 'border-green-300' : 'border-blue-200'}`} />
-                  {xdrParseError && <p className="text-xs text-red-600 font-semibold mt-1">{xdrParseError}</p>}
+                    className={`w-full px-4 py-3 rounded-xl bg-white ring-1 focus:outline-none focus:ring-2 text-sm font-mono text-stone-700 placeholder-stone-300 transition-all resize-none
+                      ${xdrParseError ? 'ring-rose-300 focus:ring-rose-400' : xdrParseSuccess ? 'ring-teal-300 focus:ring-teal-400' : 'ring-stone-200 focus:ring-violet-300'}`} />
+                  {xdrParseError && <p className="text-[10px] font-medium text-rose-500 mt-1.5 ml-0.5">{xdrParseError}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1">Session ID</label><input readOnly value={importSessionId} className="w-full px-4 py-2 rounded-xl bg-gray-50 border-2 border-gray-200 text-xs font-mono text-gray-600 cursor-not-allowed" /></div>
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1">P1 Points</label><input readOnly value={importPlayer1Points} className="w-full px-4 py-2 rounded-xl bg-gray-50 border-2 border-gray-200 text-xs text-gray-600 cursor-not-allowed" /></div>
+                  <div><label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1 ml-0.5">Session ID</label><input readOnly value={importSessionId} className="w-full px-3 py-2.5 rounded-xl bg-stone-100 ring-1 ring-stone-200 text-xs font-mono text-stone-400 cursor-not-allowed" /></div>
+                  <div><label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1 ml-0.5">P1 Points</label><input readOnly value={importPlayer1Points} className="w-full px-3 py-2.5 rounded-xl bg-stone-100 ring-1 ring-stone-200 text-xs text-stone-400 cursor-not-allowed" /></div>
                 </div>
-                <div><label className="block text-xs font-bold text-gray-500 mb-1">Player 1</label><input readOnly value={importPlayer1} className="w-full px-4 py-2 rounded-xl bg-gray-50 border-2 border-gray-200 text-xs font-mono text-gray-600 cursor-not-allowed" /></div>
+                <div><label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1 ml-0.5">Player 1</label><input readOnly value={importPlayer1} className="w-full px-3 py-2.5 rounded-xl bg-stone-100 ring-1 ring-stone-200 text-xs font-mono text-stone-400 cursor-not-allowed" /></div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="block text-xs font-bold text-gray-500 mb-1">You (P2)</label><input readOnly value={userAddress} className="w-full px-4 py-2 rounded-xl bg-gray-50 border-2 border-gray-200 text-xs font-mono text-gray-600 cursor-not-allowed" /></div>
-                  <div><label className="block text-xs font-bold text-gray-700 mb-1">Your Points *</label><input type="text" value={importPlayer2Points} onChange={(e) => setImportPlayer2Points(e.target.value)} placeholder="0.1" className="w-full px-4 py-2 rounded-xl bg-white border-2 border-blue-200 focus:outline-none focus:border-blue-400 text-xs" /></div>
+                  <div><label className="block text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1 ml-0.5">You (P2)</label><input readOnly value={userAddress} className="w-full px-3 py-2.5 rounded-xl bg-stone-100 ring-1 ring-stone-200 text-xs font-mono text-stone-400 cursor-not-allowed" /></div>
+                  <div><label className="block text-[10px] font-bold uppercase tracking-widest text-violet-600 mb-1 ml-0.5">Your Points *</label><input type="text" value={importPlayer2Points} onChange={(e) => setImportPlayer2Points(e.target.value)} placeholder="0.1" className="w-full px-3 py-2.5 rounded-xl bg-white ring-1 ring-stone-200 focus:outline-none focus:ring-2 focus:ring-violet-300 text-xs font-mono text-stone-700 placeholder-stone-300 transition-all" /></div>
                 </div>
               </div>
               <button onClick={handleImport} disabled={isBusy || !importAuthEntryXDR.trim()}
-                className="w-full py-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 disabled:from-gray-200 disabled:to-gray-300 disabled:text-gray-500 transition-all shadow-xl">
+                className="w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-white bg-violet-600 hover:bg-violet-700 disabled:bg-stone-200 disabled:text-stone-400 transition-all duration-300 shadow-sm hover:shadow-md mt-2 flex items-center justify-center gap-2">
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 {loading ? 'Importing…' : 'Import & Sign'}
               </button>
             </div>
@@ -627,15 +732,18 @@ export function CtmGame({
 
           {/* --- LOAD MODE --- */}
           {createMode === 'load' && (
-            <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl">
-                <p className="text-sm font-semibold text-green-800 mb-2">🎮 Load Existing Game</p>
+            <div className="space-y-5 bg-stone-50/50 p-6 md:p-8 rounded-2xl ring-1 ring-stone-200/80">
+              <div className="p-5 bg-teal-50/60 ring-1 ring-teal-200/80 rounded-2xl space-y-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-teal-600 flex items-center gap-1.5">
+                  <RotateCcw className="w-4 h-4" /> Load Existing Game
+                </p>
                 <input type="text" value={loadSessionId} onChange={(e) => setLoadSessionId(e.target.value)} placeholder="Session ID"
-                  className="w-full px-4 py-3 rounded-xl bg-white border-2 border-green-200 focus:outline-none focus:border-green-400 text-sm font-mono" />
+                  className="w-full px-4 py-3 rounded-xl bg-white ring-1 ring-stone-200 focus:outline-none focus:ring-2 focus:ring-teal-300 text-sm font-mono text-stone-700 placeholder-stone-300 transition-all" />
               </div>
               <button onClick={handleLoad} disabled={isBusy || !loadSessionId.trim()}
-                className="w-full py-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-200 disabled:to-gray-300 disabled:text-gray-500 transition-all shadow-xl">
-                {loading ? 'Loading…' : '🎮 Load Game'}
+                className="w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-white bg-teal-600 hover:bg-teal-700 disabled:bg-stone-200 disabled:text-stone-400 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center gap-2">
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                {loading ? 'Loading…' : 'Load Game'}
               </button>
             </div>
           )}
@@ -646,34 +754,62 @@ export function CtmGame({
       {/* PLAYING PHASE                                                      */}
       {/* ================================================================= */}
       {gamePhase === 'playing' && gameState && (
-        <div className="space-y-6">
-          {/* Player cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <PlayerCard label="Player 1" address={gameState.player1} points={gameState.player1_points} isMe={gameState.player1 === userAddress} statusEl={p1Status(gameState)} />
-            <PlayerCard label="Player 2" address={gameState.player2} points={gameState.player2_points} isMe={gameState.player2 === userAddress} statusEl={p2Status(gameState)} />
+        <div className="space-y-5 relative z-10">
+          {/* Board layout — opponent top, you bottom */}
+          <div className="flex flex-col gap-3">
+            {/* Opponent card (always on top) */}
+            <PlayerCard
+              label={gameState.player1 === userAddress ? 'Player 2' : 'Player 1'}
+              address={gameState.player1 === userAddress ? gameState.player2 : gameState.player1}
+              points={gameState.player1 === userAddress ? gameState.player2_points : gameState.player1_points}
+              isMe={false}
+              statusEl={gameState.player1 === userAddress ? p2Status(gameState) : p1Status(gameState)}
+            />
+            {/* VS divider */}
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex-1 h-px bg-stone-200" />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black ring-2 shadow-sm
+                ${isP1 ? 'bg-amber-50 ring-amber-300 text-amber-600' : 'bg-violet-50 ring-violet-300 text-violet-600'}`}>
+                <Swords className="w-4 h-4" />
+              </div>
+              <div className="flex-1 h-px bg-stone-200" />
+            </div>
+            {/* Your card (always on bottom) */}
+            <PlayerCard
+              label={gameState.player1 === userAddress ? 'Player 1' : 'Player 2'}
+              address={userAddress}
+              points={gameState.player1 === userAddress ? gameState.player1_points : gameState.player2_points}
+              isMe={true}
+              statusEl={gameState.player1 === userAddress ? p1Status(gameState) : p2Status(gameState)}
+            />
           </div>
 
           {/* ---- Phase 1: Commit Hands ---- */}
           {uiPhase === 'commit_hands' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-black text-gray-800">🔒 Phase 1: Choose Two Hands</h3>
-              <p className="text-sm text-gray-600">Pick two <strong>different</strong> figures. They'll be hidden until both players commit.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Left Hand</p>
-                  <div className="flex gap-3">
+            <div className={`space-y-5 p-6 md:p-8 rounded-2xl ring-1 transition-all duration-500 ${isP1 ? 'bg-amber-50/30 ring-amber-200/60' : 'bg-violet-50/30 ring-violet-200/60'}`}>
+              <div className="flex items-center gap-2.5">
+                <Lock className={`w-5 h-5 ${isP1 ? 'text-amber-500' : 'text-violet-500'}`} />
+                <h3 className="text-base font-bold text-stone-800" style={{ fontFamily: 'var(--font-serif)' }}>Choose Two Hands</h3>
+              </div>
+              <p className="text-xs text-stone-500">Pick two <strong className={isP1 ? 'text-amber-600' : 'text-violet-600'}>different</strong> figures. They'll be hidden until both players commit.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="p-4 bg-white rounded-xl ring-1 ring-stone-200/80">
+                  <p className="text-[10px] font-bold text-stone-400 mb-3 uppercase tracking-widest">Left Hand</p>
+                  <div className="flex gap-2.5">
                     {[0, 1, 2].map((h) => <HandButton key={h} hand={h} selected={selectedLeft === h} onSelect={() => setSelectedLeft(h)} disabled={selectedRight === h} />)}
                   </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Right Hand</p>
-                  <div className="flex gap-3">
+                <div className="p-4 bg-white rounded-xl ring-1 ring-stone-200/80">
+                  <p className="text-[10px] font-bold text-stone-400 mb-3 uppercase tracking-widest">Right Hand</p>
+                  <div className="flex gap-2.5">
                     {[0, 1, 2].map((h) => <HandButton key={h} hand={h} selected={selectedRight === h} onSelect={() => setSelectedRight(h)} disabled={selectedLeft === h} />)}
                   </div>
                 </div>
               </div>
               <button onClick={handleCommitHands} disabled={isBusy || selectedLeft === null || selectedRight === null || selectedLeft === selectedRight}
-                className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-200 disabled:to-gray-300 disabled:text-gray-500 transition-all shadow-lg">
+                className={`w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-white disabled:bg-stone-200 disabled:text-stone-400 transition-all duration-300 shadow-sm hover:shadow-md mt-2 flex items-center justify-center gap-2
+                  ${isP1 ? 'bg-amber-500 hover:bg-amber-600' : 'bg-violet-500 hover:bg-violet-600'}`}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 {loading ? 'Committing…' : `Commit: ${selectedLeft != null ? HAND_EMOJI[selectedLeft] : '?'} + ${selectedRight != null ? HAND_EMOJI[selectedRight] : '?'}`}
               </button>
             </div>
@@ -682,12 +818,17 @@ export function CtmGame({
 
           {/* ---- Phase 2: Reveal Hands ---- */}
           {uiPhase === 'reveal_hands' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-black text-gray-800">👁 Phase 2: Reveal Your Hands</h3>
-              <p className="text-sm text-gray-600">Both players committed. Click below to reveal your hands (verified on-chain against your hash).</p>
+            <div className={`space-y-5 p-6 md:p-8 rounded-2xl ring-1 transition-all duration-500 ${isP1 ? 'bg-amber-50/30 ring-amber-200/60' : 'bg-violet-50/30 ring-violet-200/60'}`}>
+              <div className="flex items-center gap-2.5">
+                <Eye className={`w-5 h-5 ${isP1 ? 'text-amber-500' : 'text-violet-500'}`} />
+                <h3 className="text-base font-bold text-stone-800" style={{ fontFamily: 'var(--font-serif)' }}>Reveal Your Hands</h3>
+              </div>
+              <p className="text-xs text-stone-500">Both players committed. Click below to reveal your hands (verified on-chain).</p>
               <button onClick={handleRevealHands} disabled={isBusy}
-                className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 disabled:from-gray-200 disabled:to-gray-300 disabled:text-gray-500 transition-all shadow-lg">
-                {loading ? 'Revealing…' : '👁 Reveal Hands'}
+                className={`w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-white disabled:bg-stone-200 disabled:text-stone-400 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center gap-2
+                  ${isP1 ? 'bg-amber-500 hover:bg-amber-600' : 'bg-violet-500 hover:bg-violet-600'}`}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                {loading ? 'Revealing…' : 'Reveal Hands'}
               </button>
             </div>
           )}
@@ -695,31 +836,37 @@ export function CtmGame({
 
           {/* ---- Phase 3: Commit Choice ---- */}
           {uiPhase === 'commit_choice' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-black text-gray-800">🧠 Phase 3: Strategic Removal</h3>
-              <p className="text-sm text-gray-600">All hands are visible! Choose which of <strong>your</strong> hands to <strong>keep</strong> for the final duel.</p>
+            <div className={`space-y-5 p-6 md:p-8 rounded-2xl ring-1 transition-all duration-500 ${isP1 ? 'bg-amber-50/30 ring-amber-200/60' : 'bg-violet-50/30 ring-violet-200/60'}`}>
+              <div className="flex items-center gap-2.5">
+                <BrainCircuit className={`w-5 h-5 ${isP1 ? 'text-amber-500' : 'text-violet-500'}`} />
+                <h3 className="text-base font-bold text-stone-800" style={{ fontFamily: 'var(--font-serif)' }}>Strategic Removal</h3>
+              </div>
+              <p className="text-xs text-stone-500">All hands are visible! Choose which of <strong className={isP1 ? 'text-amber-600' : 'text-violet-600'}>your</strong> hands to <strong className={isP1 ? 'text-amber-600' : 'text-violet-600'}>keep</strong> for the duel.</p>
 
               {/* Show all 4 hands */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-purple-600 uppercase">Your Hands</p>
-                  <div className="flex gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="p-4 bg-white rounded-xl ring-1 ring-stone-200/80 space-y-3">
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${isP1 ? 'text-amber-500' : 'text-violet-500'}`}>Your Hands</p>
+                  <div className="flex gap-2.5">
                     {[
                       { idx: 0, hand: gameState.player1 === userAddress ? gameState.p1_left : gameState.p2_left, label: 'Left' },
                       { idx: 1, hand: gameState.player1 === userAddress ? gameState.p1_right : gameState.p2_right, label: 'Right' },
                     ].map(({ idx, hand, label }) => (
                       <button key={idx} onClick={() => setSelectedKeep(idx)} disabled={hand == null}
-                        className={`flex-1 p-4 rounded-xl border-2 text-center transition-all ${selectedKeep === idx ? 'border-yellow-500 bg-yellow-50 scale-105 shadow-lg' : 'border-gray-200 bg-white hover:border-yellow-300'}`}>
+                        className={`flex-1 p-3 rounded-xl ring-1 text-center transition-all duration-300
+                          ${selectedKeep === idx
+                            ? (isP1 ? 'ring-2 ring-amber-400 bg-amber-50 shadow-md -translate-y-1' : 'ring-2 ring-violet-400 bg-violet-50 shadow-md -translate-y-1')
+                            : 'ring-stone-200 bg-white hover:ring-stone-300 hover:bg-stone-50'}`}>
                         <div className="text-3xl">{hand != null ? HAND_EMOJI[hand] : '?'}</div>
-                        <div className="text-xs font-bold mt-1">{label}</div>
-                        {selectedKeep === idx && <div className="text-xs text-yellow-600 font-bold mt-1">KEEP ✓</div>}
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-2">{label}</div>
+                        {selectedKeep === idx && <div className={`text-[10px] font-bold uppercase tracking-widest mt-1.5 animate-pulse ${isP1 ? 'text-amber-500' : 'text-violet-500'}`}>KEEP ✓</div>}
                       </button>
                     ))}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-gray-500 uppercase">Opponent's Hands</p>
-                  <div className="flex gap-3">
+                <div className="p-4 bg-white rounded-xl ring-1 ring-stone-200/80 space-y-3">
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Opponent's Hands</p>
+                  <div className="flex gap-2.5">
                     <HandDisplay hand={gameState.player1 === userAddress ? gameState.p2_left : gameState.p1_left} label="Left" />
                     <HandDisplay hand={gameState.player1 === userAddress ? gameState.p2_right : gameState.p1_right} label="Right" />
                   </div>
@@ -727,25 +874,27 @@ export function CtmGame({
               </div>
 
               <button onClick={handleCommitChoice} disabled={isBusy || selectedKeep === null}
-                className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:from-gray-200 disabled:to-gray-300 disabled:text-gray-500 transition-all shadow-lg">
+                className={`w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-white disabled:bg-stone-200 disabled:text-stone-400 transition-all duration-300 shadow-sm hover:shadow-md mt-2 flex items-center justify-center gap-2
+                  ${isP1 ? 'bg-amber-500 hover:bg-amber-600' : 'bg-violet-500 hover:bg-violet-600'}`}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4" />}
                 {loading ? 'Committing…' : `Keep ${selectedKeep != null ? (selectedKeep === 0 ? 'Left' : 'Right') : '?'} Hand`}
               </button>
             </div>
           )}
           {uiPhase === 'waiting_choices' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <WaitingBanner msg="Your choice is committed. Waiting for opponent to choose…" />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-purple-600 uppercase">Your Hands</p>
-                  <div className="flex gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="p-4 bg-white rounded-xl ring-1 ring-stone-200/80 space-y-3">
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${isP1 ? 'text-amber-500' : 'text-violet-500'}`}>Your Hands</p>
+                  <div className="flex gap-2.5">
                     <HandDisplay hand={gameState.player1 === userAddress ? gameState.p1_left : gameState.p2_left} label="Left" />
                     <HandDisplay hand={gameState.player1 === userAddress ? gameState.p1_right : gameState.p2_right} label="Right" />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-gray-500 uppercase">Opponent's Hands</p>
-                  <div className="flex gap-3">
+                <div className="p-4 bg-white rounded-xl ring-1 ring-stone-200/80 space-y-3">
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Opponent's Hands</p>
+                  <div className="flex gap-2.5">
                     <HandDisplay hand={gameState.player1 === userAddress ? gameState.p2_left : gameState.p1_left} label="Left" />
                     <HandDisplay hand={gameState.player1 === userAddress ? gameState.p2_right : gameState.p1_right} label="Right" />
                   </div>
@@ -756,12 +905,17 @@ export function CtmGame({
 
           {/* ---- Phase 4: Reveal Choice ---- */}
           {uiPhase === 'reveal_choice' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-black text-gray-800">🎯 Phase 4: Reveal Your Choice</h3>
-              <p className="text-sm text-gray-600">Both players have chosen. Reveal your choice to determine the winner!</p>
+            <div className={`space-y-5 p-6 md:p-8 rounded-2xl ring-1 transition-all duration-500 ${isP1 ? 'bg-amber-50/30 ring-amber-200/60' : 'bg-violet-50/30 ring-violet-200/60'}`}>
+              <div className="flex items-center gap-2.5">
+                <Swords className={`w-5 h-5 ${isP1 ? 'text-amber-500' : 'text-violet-500'}`} />
+                <h3 className="text-base font-bold text-stone-800" style={{ fontFamily: 'var(--font-serif)' }}>Reveal Your Choice</h3>
+              </div>
+              <p className="text-xs text-stone-500">Both players have chosen. Reveal your choice to determine the winner!</p>
               <button onClick={handleRevealChoice} disabled={isBusy}
-                className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600 disabled:from-gray-200 disabled:to-gray-300 disabled:text-gray-500 transition-all shadow-lg">
-                {loading ? 'Revealing…' : '🎯 Reveal Choice'}
+                className={`w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-white disabled:bg-stone-200 disabled:text-stone-400 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center gap-2
+                  ${isP1 ? 'bg-amber-500 hover:bg-amber-600' : 'bg-violet-500 hover:bg-violet-600'}`}>
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Swords className="w-4 h-4" />}
+                {loading ? 'Revealing…' : 'Reveal Choice'}
               </button>
             </div>
           )}
@@ -769,38 +923,57 @@ export function CtmGame({
 
           {/* ---- Phase 5: Complete ---- */}
           {uiPhase === 'complete' && (
-            <div className="space-y-6">
-              <div className="p-10 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-2 border-green-300 rounded-2xl text-center shadow-2xl">
-                <div className="text-7xl mb-6">🏆</div>
-                <h3 className="text-3xl font-black text-gray-900 mb-4">Game Complete!</h3>
-                {gameState.p1_kept != null && gameState.p2_kept != null && (
-                  <div className="space-y-4 mb-6">
-                    <div className="text-4xl font-bold">
-                      {HAND_EMOJI[gameState.p1_kept]} vs {HAND_EMOJI[gameState.p2_kept]}
-                    </div>
-                    <div className="text-lg font-semibold text-gray-700">
-                      {HAND_NAME[gameState.p1_kept]} vs {HAND_NAME[gameState.p2_kept]}
-                      {' → '}
-                      {rpsResult(gameState.p1_kept, gameState.p2_kept) === 'draw'
-                        ? 'Draw (P1 tiebreak)'
-                        : rpsResult(gameState.p1_kept, gameState.p2_kept) === 'p1'
-                        ? `${HAND_NAME[gameState.p1_kept]} beats ${HAND_NAME[gameState.p2_kept]}`
-                        : `${HAND_NAME[gameState.p2_kept]} beats ${HAND_NAME[gameState.p1_kept]}`}
-                    </div>
+            <div className="space-y-5">
+              <div className="p-8 md:p-10 bg-white rounded-2xl ring-1 ring-stone-200 text-center relative overflow-hidden">
+                {/* Celebratory gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 via-white to-violet-50/50 pointer-events-none" />
+
+                <div className="relative z-10">
+                  <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-5 shadow-lg
+                    ${gameState.winner === userAddress ? 'bg-amber-100 ring-4 ring-amber-200' : 'bg-stone-100 ring-4 ring-stone-200'}`}>
+                    <Trophy className={`w-10 h-10 ${gameState.winner === userAddress ? 'text-amber-500' : 'text-stone-400'}`} />
                   </div>
-                )}
-                {gameState.winner && (
-                  <div className="p-5 bg-white border-2 border-green-200 rounded-xl shadow-lg">
-                    <p className="text-xs font-bold uppercase tracking-wide text-gray-600 mb-2">Winner</p>
-                    <p className="font-mono text-sm font-bold text-gray-800">{shortAddr(gameState.winner)}</p>
-                    {gameState.winner === userAddress && <p className="mt-3 text-green-700 font-black text-lg">🎉 You won!</p>}
-                    {gameState.winner !== userAddress && <p className="mt-3 text-gray-600 font-semibold">Better luck next time!</p>}
-                  </div>
-                )}
+                  <h3 className="text-2xl font-bold text-stone-800 mb-5" style={{ fontFamily: 'var(--font-serif)' }}>Game Complete!</h3>
+
+                  {gameState.p1_kept != null && gameState.p2_kept != null && (
+                    <div className="space-y-5 mb-6">
+                      <div className="flex items-center justify-center gap-5">
+                        <div className="w-20 h-20 rounded-2xl bg-amber-50 ring-1 ring-amber-200 flex items-center justify-center text-4xl shadow-inner">
+                          {HAND_EMOJI[gameState.p1_kept]}
+                        </div>
+                        <div className="text-lg font-bold text-stone-300 italic">VS</div>
+                        <div className="w-20 h-20 rounded-2xl bg-violet-50 ring-1 ring-violet-200 flex items-center justify-center text-4xl shadow-inner">
+                          {HAND_EMOJI[gameState.p2_kept]}
+                        </div>
+                      </div>
+                      <div className="inline-block px-5 py-2.5 rounded-full bg-stone-50 ring-1 ring-stone-200">
+                        <span className="text-sm font-medium text-stone-600">
+                          {HAND_NAME[gameState.p1_kept]} vs {HAND_NAME[gameState.p2_kept]}
+                        </span>
+                        <span className="mx-2 text-stone-300">→</span>
+                        <span className="text-sm font-bold text-teal-600">
+                          {rpsResult(gameState.p1_kept, gameState.p2_kept) === 'draw'
+                            ? 'Draw (P1 tiebreak)'
+                            : rpsResult(gameState.p1_kept, gameState.p2_kept) === 'p1'
+                            ? `${HAND_NAME[gameState.p1_kept]} beats ${HAND_NAME[gameState.p2_kept]}`
+                            : `${HAND_NAME[gameState.p2_kept]} beats ${HAND_NAME[gameState.p1_kept]}`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {gameState.winner && (
+                    <div className="p-5 bg-stone-50 ring-1 ring-stone-200 rounded-xl max-w-sm mx-auto">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2">Winner</p>
+                      <p className="font-mono text-sm text-stone-600 bg-white py-1.5 px-3 rounded-lg inline-block ring-1 ring-stone-200">{shortAddr(gameState.winner)}</p>
+                      {gameState.winner === userAddress && <p className="mt-3 text-amber-500 font-bold text-lg">🎉 You won!</p>}
+                      {gameState.winner !== userAddress && <p className="mt-3 text-stone-400 font-medium">Better luck next time!</p>}
+                    </div>
+                  )}
+                </div>
               </div>
               <button onClick={resetToCreate}
-                className="w-full py-4 rounded-xl font-bold text-gray-700 bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400 transition-all shadow-lg">
-                Start New Game
+                className="w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-stone-600 bg-stone-100 hover:bg-stone-200 ring-1 ring-stone-200 transition-all duration-300 hover:shadow-sm flex items-center justify-center gap-2">
+                <RotateCcw className="w-4 h-4" /> Start New Game
               </button>
             </div>
           )}
