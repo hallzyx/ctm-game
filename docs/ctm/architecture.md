@@ -169,6 +169,33 @@ CREATE → PLAYING → COMPLETE
 - **Fairness**: Simultaneous moves prevent timing attacks
 - **Verifiability**: All commitments cryptographically verifiable
 
+### Noir circuit integration (integrated)
+
+CTM ships with a supported workflow for Noir circuits so that proof generation and verification are part of the standard game toolchain. The contract still performs canonical keccak256 checks, while Noir proofs are used as first-class attestations for privacy-preserving assertions and tournament-grade auditability.
+
+What to prove in a circuit:
+  - Input validity: both hands ∈ {0,1,2}
+  - Distinctness: left_hand != right_hand
+  - Choice consistency: choice_index ∈ {0,1} and maps to one of the revealed hands
+
+Circuit structure suggestion:
+  - Public inputs: commitment hash (BytesN<32>), optional session id
+  - Private inputs: left_hand, right_hand, choice_index, salts
+  - Assertions: recompute keccak256(preimage) inside the circuit or include an intermediate hash check depending on the proving backend
+
+Verification pattern (CTM workflow):
+  - Off-chain prover produces a proof and public inputs using the Noir toolchain.
+  - Proof and public inputs are published to a prover API or IPFS and a short reference (CID or signed attestation) is attached to the transaction memo or the game scoreboard entry.
+  - Tournament backends or auditors fetch the proof and verify it off-chain; the contract continues to use keccak256 as the canonical verification step.
+
+On-chain verification (advanced):
+  - If required, teams can deploy a verifier contract compatible with the proof system to perform on-chain verification. Note: on-chain verification significantly increases complexity and resource cost.
+
+Benefits summary:
+ - **Privacy**: Noir proofs let you attest properties without revealing preimages.
+ - **Auditability**: Third parties can validate proofs against public inputs for tournament integrity.
+ - **Flexibility**: Circuits can express richer rules (tournament constraints, score invariants) without changing contract logic.
+
 ### Smart Contract Security
 - **Access Control**: Only authorized players can act
 - **State Validation**: Phase transitions strictly enforced

@@ -118,6 +118,23 @@ Reveal chosen hand and resolve the game.
 
 ---
 
+### Noir proofs (integrated support)
+
+CTM includes a supported Noir proof workflow: frontends and tournament infrastructure generate proofs off-chain using CTM's example circuits and helper scripts, then publish proof artifacts and attach short references to game transactions or scoreboard entries.
+
+Suggested fields and flow (frontend):
+  1. **Generate proof off-chain** for the desired assertion (e.g., "hands are valid and different").
+  2. **Publish proof** to an off-chain verifier or IPFS and obtain a short reference (CID or signed attestation).
+  3. **Attach reference** to the corresponding transaction (e.g., include CID in transaction memo or store in an off-chain scoreboard tied to `session_id`).
+
+Notes:
+  - The on-chain contract continues to verify by recomputing `keccak256(...)`. Noir proofs are auxiliary but first-class: used for independent auditors, competitive tournament rules, and enhanced UX assurances.
+  - For teams requiring on-chain verification, CTM provides guidance on building a verifier contract; be aware this increases cost and complexity.
+
+---
+
+---
+
 #### `get_game`
 Query current game state.
 

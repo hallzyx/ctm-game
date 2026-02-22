@@ -23,36 +23,36 @@ bun install
 
 ## Project Structure
 
-```
-Stellar-Game-Studio/
-├── contracts/ctm/              # Smart contract
-│   ├── src/lib.rs             # Main contract logic
-│   ├── Cargo.toml             # Rust dependencies
-│   └── test_snapshots/        # Integration tests
-├── ctm-frontend/              # React application
-│   ├── src/
-│   │   ├── games/ctm/        # Game-specific code
-│   │   │   ├── CtmGame.tsx   # Main component
-│   │   │   ├── ctmService.ts # Contract service
-│   │   │   └── bindings.ts   # Generated types
-│   │   └── utils/             # Shared utilities
-│   └── package.json
-└── docs/ctm/                  # Documentation
-```
+## Noir circuits and prover workflow (integrated feature)
 
-## Development Workflow
+CTM ships with support for Noir circuits and a recommended, production-ready prover workflow. Noir is treated as an integrated feature in CTM and is used by the frontend and tournament tooling to produce privacy-preserving attestations and enforce richer invariants.
 
-### 1. Contract Development
+### Goals for circuits
+- Prove that both committed hands are valid and different without revealing them.
+- Prove that a committed choice matches one of the previously revealed hands (privacy-preserving consistency check).
 
-#### Building the Contract
-```bash
-cd contracts/ctm
-cargo build --target wasm32-unknown-unknown --release
-```
+### Suggested workflow (CTM standard)
+1. **Write circuits**: implement a Noir circuit that accepts private inputs (left, right, salts, choice_index) and exposes public inputs (commitment hash, session id). The circuit asserts validity and either recomputes the commitment hash or checks intermediate hashes depending on your proving backend.
+2. **Compile**: build the circuit with the Noir toolchain to produce prover artifacts and optional verifier artifacts.
+3. **Prove**: the frontend or a trusted prover service runs the prover to generate proofs when a player commits or before reveals.
+4. **Publish proof**: store proof and public inputs in a prover API or IPFS; include a short reference (CID or signed attestation) in the transaction memo or the game scoreboard tied to `session_id`.
+5. **Verify**: tournament backends or auditors fetch the proof and verify it off-chain. CTM provides helper scripts to run verification during CI.
 
-#### Running Tests
-```bash
-# Unit tests
+### Example (high-level commands)
+- Create circuit: `noir new ctms_circuit`
+- Build circuit: `noir build`
+- Generate proof: `noir prove --private inputs.json --public public.json --out proof.bin`
+- Verify (off-chain): `noir verify --proof proof.bin --public public.json`
+
+Note: CLI names vary with Noir versions; consult Noir docs for exact commands. CTM includes example circuits and a proof runner in `scripts/noir/` (see repo examples) to bootstrap integration.
+
+### Integration notes
+- The on-chain contract remains the authoritative guardrail via keccak256 checks; Noir proofs augment privacy and provide auditable assertions for tournament flows.
+- For tournament integrations, run a dedicated verifier service that validates proofs and issues signed attestations; the frontend attaches these attestations to transactions to streamline verification.
+
+### Tests and CI
+- Add unit tests for circuit logic and CI steps that generate and verify proofs as part of the test matrix.
+- Store canonical test vectors to detect regressions in circuit or prover changes.
 cargo test
 
 # Integration tests with Soroban

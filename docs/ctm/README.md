@@ -61,6 +61,23 @@ Standard rock-paper-scissors rules apply to the final kept hands:
 - **Binding**: Cannot change selections after commitment
 - **Verifiable**: Contract can verify revealed values match commitments
 
+### Noir integration (integrated feature)
+
+CTM includes built-in support for Noir circuits and an off-chain proving workflow to provide stronger privacy and richer assertions than hash-only commit–reveal. Noir proofs are treated as a first-class feature of the game stack and are used by the frontend and tournament tooling to produce auditable, privacy-preserving attestations.
+
+- Phase uses and benefits:
+	- **Phase 1 (Commit Hands)**: CTM's Noir circuit proves that the committed preimage encodes *two different valid hands* (0,1,2) without revealing which ones. This prevents malformed commitments and enforces the "hands must differ" rule privately.
+	- **Phase 2 (Reveal Hands)**: The prover can produce an optional attestation that links the original commitment to the revealed hands; useful for off-chain auditors and tournament scorekeepers while the contract's keccak256 check remains canonical.
+	- **Phase 3 (Commit Choice)**: The Noir circuit asserts that `choice_index ∈ {0,1}` and that the choice refers to one of the previously revealed hands — without leaking which one — increasing competitive privacy for advanced tournament modes.
+	- **Phase 4 (Reveal Choice)**: A proof can attest that the revealed choice matches the earlier committed preimage; off-chain verifiers can validate this quickly without reprocessing salts.
+
+- Integration pattern (how we use it in CTM):
+	1. Frontend runs the Noir prover (local or trusted prover service) to produce a proof and public inputs when a player commits or before a reveal step.
+	2. Proof artifacts are stored off-chain (IPFS or a prover API) and a short reference (CID or signed attestation) is attached to the transaction memo or saved in the game scoreboard service tied to `session_id`.
+	3. Tournament backends or third-party verifiers fetch the proof by reference and verify the public inputs against the contract's stored commitments.
+
+The on-chain contract remains the authoritative guardrail (recomputing keccak256), while Noir proofs provide privacy, auditability, and richer rule assertions for competitive play.
+
 ## Technical Architecture
 
 ### Smart Contract
