@@ -6,6 +6,28 @@ Ecosystem ready game templates and examples ready to scaffold into into your dev
 
 **Start here:** [Stellar Game Studio](https://jamesbachini.github.io/Stellar-Game-Studio/)
 
+## Games
+
+### CTM (Commit-Turn-Move)
+
+A zero-knowledge powered rock-paper-scissors variant where players strategically commit and reveal hands.
+
+**Key Features:**
+- Zero-knowledge commitments using keccak256 hashing
+- Two-phase strategic gameplay (commit hands → choose keeper)
+- Built on Stellar Soroban platform
+- TypeScript frontend with modern UI
+
+**Quick Start:**
+```bash
+# Scaffold CTM game
+bun run create ctm
+
+# Run development frontend
+bun run dev:game ctm
+```
+
+**Learn More:** [CTM Documentation](./docs/ctm/)
 
 ## Why this exists
 
